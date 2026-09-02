@@ -8,6 +8,7 @@ A fast, bilingual (বাংলা + English), browser-only calculator for Bangl
 - Quick deposit and withdrawal cashback for one selected wallet
 - Multi-wallet deposit/withdrawal calculation with wallet and grand totals
 - Complete Bangla and English interface with locally saved language preference
+- First-class light and dark themes with saved system-aware preference
 - Transparent rate reference, pending-rate safeguards, copy, and reset actions
 - Responsive layout designed for 320px through large desktop screens
 - Lightweight Vite + React + TypeScript build, ready for GitHub Pages

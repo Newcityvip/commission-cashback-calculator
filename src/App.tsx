@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { commissionPresets, configuredWallets, walletConfigs } from './config/rates'
 import { translations } from './i18n/translations'
-import type { Language, TransactionType, WalletConfig } from './types'
+import type { Language, Theme, TransactionType, WalletConfig } from './types'
 import { calculateCashback, calculateCommission, parseNumericInput } from './utils/calculations'
 import { formatMoney, formatPercentInput, formatRate } from './utils/format'
 
@@ -12,6 +12,11 @@ const defaultSim: SimState = { depositAmount: '', depositRate: '1.5', withdrawal
 
 function App() {
   const [language, setLanguage] = useState<Language>(() => localStorage.getItem('hishab-language') === 'en' ? 'en' : 'bn')
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem('hishab-theme')
+    if (saved === 'light' || saved === 'dark') return saved
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  })
   const [sim, setSim] = useState<SimState>(defaultSim)
   const [cashbackMode, setCashbackMode] = useState<'quick' | 'multi'>('quick')
   const [walletId, setWalletId] = useState('bkash')
@@ -19,7 +24,16 @@ function App() {
   const [volumes, setVolumes] = useState<Volumes>(createEmptyVolumes)
   const t = translations[language]
 
-  useEffect(() => { document.documentElement.lang = language; localStorage.setItem('hishab-language', language) }, [language])
+  useEffect(() => {
+    document.documentElement.lang = language
+    document.title = language === 'bn' ? 'হিসাব — কমিশন ও ক্যাশব্যাক ক্যালকুলেটর' : 'Hishab — Commission & Cashback Calculator'
+    localStorage.setItem('hishab-language', language)
+  }, [language])
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f1f5f4' : '#07131f')
+    localStorage.setItem('hishab-theme', theme)
+  }, [theme])
 
   const depositCommission = calculateCommission(sim.depositAmount, sim.depositRate) ?? 0
   const withdrawalCommission = calculateCommission(sim.withdrawalAmount, sim.withdrawalRate) ?? 0
@@ -38,11 +52,12 @@ function App() {
 
   return <div className="app-shell">
     <a className="skip-link" href="#main">{t.skip}</a>
-    <Header language={language} onLanguage={setLanguage} />
+    <Header language={language} onLanguage={setLanguage} theme={theme} onTheme={setTheme} />
     <main id="main">
       <section className="hero wrap" aria-labelledby="hero-title">
-        <div><h1 id="hero-title">{t.heroTitle}</h1><p>{t.heroText}</p></div>
-        <span className="browser-note"><i aria-hidden="true">✓</i>{t.browserNote}</span>
+        <div className="hero-identity" aria-hidden="true">৳</div>
+        <div className="hero-copy"><h1 id="hero-title">{t.heroTitle}</h1><p>{t.heroText}</p></div>
+        <div className="utility-badges"><span><i>✓</i>{t.instant}</span><span><i>✓</i>{t.noLogin}</span><span><i>✓</i>{t.browserNote}</span></div>
       </section>
       <div className="calculator-grid wrap">
         <CommissionCard language={language} state={sim} setState={setSim} depositResult={depositCommission} withdrawalResult={withdrawalCommission} total={totalCommission} />
@@ -57,12 +72,12 @@ function App() {
   </div>
 }
 
-const Header = memo(function Header({ language, onLanguage }: { language: Language; onLanguage: (lang: Language) => void }) {
+const Header = memo(function Header({ language, onLanguage, theme, onTheme }: { language: Language; onLanguage: (lang: Language) => void; theme: Theme; onTheme: (theme: Theme) => void }) {
   const t = translations[language]
   return <header className="site-header"><div className="wrap header-inner">
     <a className="brand" href="#main"><span className="brand-symbol">৳</span><span><strong>{t.appName}</strong><small>{t.tagline}</small></span></a>
     <nav aria-label={language === 'bn' ? 'প্রধান নেভিগেশন' : 'Main navigation'}><a href="#commission">{t.commission}</a><a href="#cashback">{t.cashback}</a><a href="#rates">{t.rates}</a></nav>
-    <div className="language-toggle" role="group" aria-label={t.language}><button className={language === 'bn' ? 'active' : ''} onClick={() => onLanguage('bn')} aria-pressed={language === 'bn'}>বাংলা</button><span>|</span><button className={language === 'en' ? 'active' : ''} onClick={() => onLanguage('en')} aria-pressed={language === 'en'}>English</button></div>
+    <div className="header-controls"><div className="theme-toggle" role="group" aria-label={t.theme}><button className={theme === 'light' ? 'active' : ''} onClick={() => onTheme('light')} aria-pressed={theme === 'light'} aria-label={t.light}><span aria-hidden="true">☀</span><em>{t.light}</em></button><button className={theme === 'dark' ? 'active' : ''} onClick={() => onTheme('dark')} aria-pressed={theme === 'dark'} aria-label={t.dark}><span aria-hidden="true">◐</span><em>{t.dark}</em></button></div><div className="language-toggle" role="group" aria-label={t.language}><button className={language === 'bn' ? 'active' : ''} onClick={() => onLanguage('bn')} aria-pressed={language === 'bn'}>বাংলা</button><button className={language === 'en' ? 'active' : ''} onClick={() => onLanguage('en')} aria-pressed={language === 'en'}>EN</button></div></div>
   </div></header>
 })
 
@@ -75,7 +90,7 @@ function CommissionCard({ language, state, setState, depositResult, withdrawalRe
   const withdrawalInvalid = isInvalid(state.withdrawalAmount) || isInvalid(state.withdrawalRate)
   const copyText = `${t.commissionTitle}\n\n${t.depositAmount}: ${formatMoney(parseNumericInput(state.depositAmount) ?? 0, language)}\n${t.depositRate}: ${formatPercentInput(state.depositRate)}\n${t.depositCommission}: ${formatMoney(depositResult, language)}\n\n${t.withdrawalAmount}: ${formatMoney(parseNumericInput(state.withdrawalAmount) ?? 0, language)}\n${t.withdrawalRate}: ${formatPercentInput(state.withdrawalRate)}\n${t.withdrawalCommission}: ${formatMoney(withdrawalResult, language)}\n\n${t.totalCommission}: ${formatMoney(total, language)}`
   return <section id="commission" className="calculator-card" aria-labelledby="commission-title">
-    <CardHeader number="01" id="commission-title" title={t.commissionTitle} description={t.commissionDesc} />
+    <CardHeader number="01" id="commission-title" title={t.commissionTitle} description={t.commissionDesc} hint={t.inputHint} />
     <TransactionSection title={t.deposit} tone="deposit"><MoneyInput id="sim-deposit" label={t.depositAmount} value={state.depositAmount} onChange={(v) => update('depositAmount', v)} language={language} /><RateInput id="sim-deposit-rate" language={language} value={state.depositRate} onChange={(v) => update('depositRate', v)} /></TransactionSection>
     <TransactionSection title={t.withdrawal} tone="withdrawal"><MoneyInput id="sim-withdrawal" label={t.withdrawalAmount} value={state.withdrawalAmount} onChange={(v) => update('withdrawalAmount', v)} language={language} /><RateInput id="sim-withdrawal-rate" language={language} value={state.withdrawalRate} onChange={(v) => update('withdrawalRate', v)} /></TransactionSection>
     {(depositInvalid || withdrawalInvalid) && <p className="validation" role="alert">{t.enterValid}</p>}
@@ -98,10 +113,9 @@ function CashbackCard(props: {
   const multiCopy = `${t.grandTotal}\n${multiRows.map((row) => `${row.wallet.name}: ${formatMoney(row.total, language)}`).join('\n')}\n\n${t.grandTotal}: ${formatMoney(multiTotal, language)}`
   const updateVolume = (id: string, type: TransactionType, value: string) => setVolumes((current) => ({ ...current, [id]: { ...current[id], [type]: value } }))
   return <section id="cashback" className="calculator-card" aria-labelledby="cashback-title">
-    <CardHeader number="02" id="cashback-title" title={t.cashbackTitle} description={t.cashbackDesc} />
-    <div className="segmented" role="group" aria-label={t.cashbackTitle}><button className={mode === 'quick' ? 'active' : ''} onClick={() => setMode('quick')}>{t.quick}</button><button className={mode === 'multi' ? 'active' : ''} onClick={() => setMode('multi')}>{t.multi}</button></div>
+    <CardHeader number="02" id="cashback-title" title={t.cashbackTitle} description={t.cashbackDesc} hint={t.inputHint} />
+    <div className={`cashback-controls ${mode === 'multi' ? 'multi-active' : ''}`}><div className="segmented" role="group" aria-label={t.cashbackTitle}><button className={mode === 'quick' ? 'active' : ''} onClick={() => setMode('quick')}>{t.quick}</button><button className={mode === 'multi' ? 'active' : ''} onClick={() => setMode('multi')}>{t.multi}</button></div>{mode === 'quick' && <div className="wallet-select"><label htmlFor="wallet">{t.wallet}</label><select id="wallet" value={walletId} onChange={(e) => setWalletId(e.target.value)}>{walletConfigs.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}{wallet.depositRate === null ? ` — ${t.pending}` : ''}</option>)}</select></div>}</div>
     {mode === 'quick' ? <>
-      <div className="wallet-select"><label htmlFor="wallet">{t.wallet}</label><select id="wallet" value={walletId} onChange={(e) => setWalletId(e.target.value)}>{walletConfigs.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}{wallet.depositRate === null ? ` — ${t.pending}` : ''}</option>)}</select></div>
       <TransactionSection title={t.deposit} tone="deposit" badge={<RateBadge label={t.depositRate} rate={selectedWallet.depositRate} />}><MoneyInput id="cashback-deposit" label={t.depositAmount} value={quickVolumes.deposit} onChange={(deposit) => setQuickVolumes((v) => ({ ...v, deposit }))} language={language} /></TransactionSection>
       <TransactionSection title={t.withdrawal} tone="withdrawal" badge={<RateBadge label={t.withdrawalRate} rate={selectedWallet.withdrawalRate} />}><MoneyInput id="cashback-withdrawal" label={t.withdrawalAmount} value={quickVolumes.withdrawal} onChange={(withdrawal) => setQuickVolumes((v) => ({ ...v, withdrawal }))} language={language} /></TransactionSection>
       {unavailable && <p className="unavailable" role="status">{t.notConfigured}</p>}{invalid && <p className="validation" role="alert">{t.enterValid}</p>}
@@ -126,12 +140,11 @@ function RateInput({ id, language, value, onChange }: { id: string; language: La
   const t = translations[language]
   return <div className="field-group rate-field"><label htmlFor={id}>{t.commissionRate}</label><div className="input-wrap suffix"><input id={id} inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} /><span>%</span></div><div className="preset-row"><span>{t.quickRate}</span>{commissionPresets.map((preset) => <button key={preset} className={Number(value) === preset ? 'selected' : ''} onClick={() => onChange(String(preset))}>{preset}%</button>)}</div></div>
 }
-function MoneyInput({ id, label, value, onChange, language, compact, result }: { id: string; label: string; value: string; onChange: (v: string) => void; language: Language; compact?: boolean; result?: string }) {
-  const t = translations[language]
-  return <div className={`field-group ${compact ? 'compact-field' : ''}`}><label htmlFor={id}>{label}</label><div className="input-wrap"><span>৳</span><input id={id} inputMode="decimal" placeholder="0" value={value} onChange={(e) => onChange(e.target.value)} aria-describedby={`${id}-hint`} /></div>{compact ? <small className="inline-result">{result}</small> : <small id={`${id}-hint`}>{t.inputHint}</small>}</div>
+function MoneyInput({ id, label, value, onChange, compact, result }: { id: string; label: string; value: string; onChange: (v: string) => void; language: Language; compact?: boolean; result?: string }) {
+  return <div className={`field-group ${compact ? 'compact-field' : ''}`}><label htmlFor={id}>{label}</label><div className="input-wrap"><span>৳</span><input id={id} inputMode="decimal" placeholder="0" value={value} onChange={(e) => onChange(e.target.value)} /></div>{compact && <small className="inline-result">{result}</small>}</div>
 }
 function RateBadge({ label, rate }: { label: string; rate: number | null }) { return <span className="rate-badge"><small>{label}</small><strong>{formatRate(rate)}</strong></span> }
-function CardHeader({ number, id, title, description }: { number: string; id: string; title: string; description: string }) { return <div className="card-header"><span>{number}</span><div><h2 id={id}>{title}</h2><p>{description}</p></div></div> }
+function CardHeader({ number, id, title, description, hint }: { number: string; id: string; title: string; description: string; hint: string }) { return <div className="card-header"><span>{number}</span><div><h2 id={id}>{title}</h2><p>{description}</p><small>{hint}</small></div></div> }
 function isInvalid(value: string) { return value !== '' && parseNumericInput(value) === null }
 
 function EarningsResult({ language, rows, totalLabel, total }: { language: Language; rows: (readonly [string, number])[]; totalLabel: string; total: number }) {

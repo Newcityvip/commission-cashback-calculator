@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07131f" />
-    <meta name="description" content="Bangladesh SIM agent commission and e-wallet cashback calculator." />
-    <title>হিসাব — Commission & Cashback Calculator</title>
+    <meta name="description" content="বাংলাদেশের সিম এজেন্ট কমিশন ও ই-ওয়ালেট ক্যাশব্যাক ক্যালকুলেটর।" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem('hishab-theme');
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      })();
+    </script>
+    <title>হিসাব — কমিশন ও ক্যাশব্যাক ক্যালকুলেটর</title>
   </head>
   <body>
     <div id="root"></div>
