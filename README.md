@@ -4,8 +4,8 @@ A fast, bilingual (বাংলা + English), browser-only calculator for Bangl
 
 ## Features
 
-- Instant SIM commission with presets and unrestricted custom percentages
-- Quick cashback for one wallet transaction
+- Combined SIM deposit and withdrawal commission with independent rates, presets, and unrestricted custom percentages
+- Quick deposit and withdrawal cashback for one selected wallet
 - Multi-wallet deposit/withdrawal calculation with wallet and grand totals
 - Complete Bangla and English interface with locally saved language preference
 - Transparent rate reference, pending-rate safeguards, copy, and reset actions
